@@ -1,0 +1,1618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CULT LP Sanctuary - Advanced IL Analysis</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --cult-green: #00ff41;
+            --cult-dark-green: #00cc33;
+            --pure-black: #000000;
+            --dark-black: #0a0a0a;
+            --blood-red: #ff0033;
+            --bone-white: #ffffff;
+            --shadow-green: rgba(0, 255, 65, 0.1);
+            --shadow-red: rgba(255, 0, 51, 0.1);
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, var(--pure-black) 0%, var(--dark-black) 50%, #001a00 100%);
+            min-height: 100vh;
+            color: var(--cult-green);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(circle at 20% 80%, var(--shadow-green) 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, var(--shadow-red) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .matrix-rain {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: -1;
+            opacity: 0.1;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+            border: 2px solid var(--cult-green);
+            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            box-shadow: 
+                0 0 30px var(--shadow-green),
+                inset 0 0 30px var(--shadow-green);
+            position: relative;
+        }
+
+        .header::before {
+            content: '◊ CULT SANCTUARY ◊';
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--pure-black);
+            padding: 0 20px;
+            font-size: 0.8rem;
+            color: var(--cult-green);
+            border: 1px solid var(--cult-green);
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            color: var(--cult-green);
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px var(--cult-green);
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .header p {
+            color: var(--bone-white);
+            font-size: 1.2rem;
+            opacity: 0.9;
+            text-shadow: 0 0 10px var(--cult-green);
+        }
+
+        .ai-status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid var(--cult-green);
+            border-radius: 10px;
+            padding: 15px;
+            z-index: 1000;
+            box-shadow: 0 0 20px var(--shadow-green);
+        }
+
+        .ai-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pulse-dot {
+            width: 12px;
+            height: 12px;
+            background: var(--cult-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+            box-shadow: 0 0 10px var(--cult-green);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.2); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+            transition: all 0.3s ease;
+            box-shadow: 0 0 20px var(--shadow-green);
+        }
+
+        .stat-card:hover {
+            border-color: var(--blood-red);
+            box-shadow: 0 0 30px var(--shadow-red);
+            transform: translateY(-5px);
+        }
+
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cult-green), transparent);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: var(--cult-green);
+            margin-bottom: 10px;
+            text-shadow: 0 0 15px var(--cult-green);
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-label {
+            color: var(--bone-white);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--cult-green);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 30px var(--shadow-green);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: var(--cult-dark-green);
+            box-shadow: 0 0 40px var(--shadow-green);
+        }
+
+        .card::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, var(--cult-green), transparent, var(--blood-red), transparent, var(--cult-green));
+            border-radius: 20px;
+            z-index: -1;
+            opacity: 0.3;
+            animation: border-flow 3s linear infinite;
+        }
+
+        @keyframes border-flow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .card h3 {
+            color: var(--cult-green);
+            margin-bottom: 25px;
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--cult-green);
+            border-bottom: 1px solid var(--cult-green);
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: var(--bone-white);
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--cult-green);
+            border-radius: 10px;
+            color: var(--cult-green);
+            font-size: 1rem;
+            font-family: 'Courier New', monospace;
+            transition: all 0.3s ease;
+            box-shadow: inset 0 0 10px var(--shadow-green);
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--blood-red);
+            box-shadow: 
+                inset 0 0 10px var(--shadow-red),
+                0 0 20px var(--shadow-red);
+            color: var(--bone-white);
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: 2px solid var(--cult-green);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.8);
+            color: var(--cult-green);
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Courier New', monospace;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, var(--shadow-green), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            border-color: var(--blood-red);
+            color: var(--bone-white);
+            box-shadow: 0 0 20px var(--shadow-red);
+            transform: translateY(-2px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, rgba(0, 255, 65, 0.2), rgba(0, 0, 0, 0.8));
+        }
+
+        .btn-danger {
+            border-color: var(--blood-red);
+            color: var(--blood-red);
+        }
+
+        .btn-danger:hover {
+            background: rgba(255, 0, 51, 0.2);
+            color: var(--bone-white);
+        }
+
+        .results {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 0 30px var(--shadow-green);
+        }
+
+        .results h4 {
+            color: var(--cult-green);
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px var(--cult-green);
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 255, 65, 0.2);
+        }
+
+        .result-row:last-child {
+            border-bottom: none;
+        }
+
+        .ai-alert {
+            background: rgba(0, 0, 0, 0.95);
+            border: 2px solid var(--blood-red);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 25px 0;
+            position: relative;
+            animation: alert-pulse 2s infinite;
+        }
+
+        @keyframes alert-pulse {
+            0%, 100% { box-shadow: 0 0 20px var(--shadow-red); }
+            50% { box-shadow: 0 0 40px var(--shadow-red); }
+        }
+
+        .ai-alert.warning {
+            border-color: #ff9900;
+            box-shadow: 0 0 20px rgba(255, 153, 0, 0.3);
+        }
+
+        .ai-alert.info {
+            border-color: var(--cult-green);
+            box-shadow: 0 0 20px var(--shadow-green);
+            animation: none;
+        }
+
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .alert-icon {
+            font-size: 1.5rem;
+            animation: rotate 2s linear infinite;
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .risk-meter {
+            display: flex;
+            height: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 2px solid var(--cult-green);
+            margin: 15px 0;
+        }
+
+        .risk-level {
+            height: 100%;
+            transition: all 0.5s ease;
+        }
+
+        .risk-low { background: var(--cult-green); }
+        .risk-medium { background: #ff9900; }
+        .risk-high { background: var(--blood-red); }
+
+        .chart-container {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 25px;
+            height: 400px;
+            box-shadow: inset 0 0 20px var(--shadow-green);
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 8px;
+            box-shadow: 0 0 20px var(--shadow-green);
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+            color: var(--cult-green);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .tab.active {
+            background: linear-gradient(45deg, var(--cult-green), var(--cult-dark-green));
+            color: var(--pure-black);
+            box-shadow: 0 0 15px var(--shadow-green);
+        }
+
+        .tab:hover:not(.active) {
+            background: rgba(0, 255, 65, 0.1);
+        }
+
+        .pool-selector {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .pool-option {
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pool-option::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: conic-gradient(var(--cult-green), transparent, var(--blood-red), transparent, var(--cult-green));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            animation: spin 3s linear infinite;
+            z-index: -1;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        .pool-option:hover::before {
+            opacity: 0.3;
+        }
+
+        .pool-option.selected {
+            border-color: var(--blood-red);
+            box-shadow: 0 0 30px var(--shadow-red);
+            transform: scale(1.05);
+        }
+
+        .pool-option.selected::before {
+            opacity: 0.2;
+        }
+
+        .pool-name {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--cult-green);
+            font-size: 1.2rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .pool-tvl {
+            color: var(--bone-white);
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .prediction-panel {
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid var(--cult-green);
+            border-radius: 15px;
+            padding: 25px;
+            margin-top: 25px;
+            box-shadow: 0 0 30px var(--shadow-green);
+        }
+
+        .prediction-timeline {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .prediction-card {
+            background: rgba(0, 0, 0, 0.8);
+            border: 1px solid var(--cult-green);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .confidence-bar {
+            height: 6px;
+            background: rgba(0, 255, 65, 0.2);
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: var(--cult-green);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        @media (max-width: 768px) {
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+            .ai-status {
+                position: relative;
+                top: auto;
+                right: auto;
+                margin-bottom: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="matrix-rain">
+        <canvas id="matrixCanvas"></canvas>
+    </div>
+
+    <div class="ai-status">
+        <div class="ai-indicator">
+            <div class="pulse-dot"></div>
+            <span>AI ORACLE ACTIVE</span>
+        </div>
+        <div id="aiRiskLevel" style="font-size: 0.8rem; margin-top: 5px;">SCANNING...</div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1>CULT SANCTUARY</h1>
+            <p>Advanced Impermanent Loss Oracle & Risk Analysis</p>
+        </div>
+
+        <!-- Live Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="cultPrice">$0.0032</div>
+                <div class="stat-label">CULT PRICE</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="obeyPrice">$0.0018</div>
+                <div class="stat-label">OBEY PRICE</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="xrpPrice">$0.52</div>
+                <div class="stat-label">XRP PRICE</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalTVL">$380K</div>
+                <div class="stat-label">TOTAL TVL</div>
+            </div>
+        </div>
+
+        <!-- AI Risk Panel -->
+        <div id="aiRiskPanel" class="ai-alert info" style="display: none;">
+            <div class="alert-header">
+                <span class="alert-icon">⚠</span>
+                <h4 id="aiAlertTitle">AI ANALYSIS</h4>
+            </div>
+            <div id="aiAlertMessage"></div>
+            <div class="risk-meter">
+                <div id="riskMeterFill" class="risk-level risk-low" style="width: 20%;"></div>
+            </div>
+            <div id="aiRecommendation"></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('calculator')">LP CALCULATOR</div>
+            <div class="tab" onclick="switchTab('oracle')">AI ORACLE</div>
+            <div class="tab" onclick="switchTab('analytics')">RITUAL ANALYTICS</div>
+        </div>
+
+        <!-- Calculator Tab -->
+        <div id="calculatorTab" class="grid">
+            <div class="card">
+                <h3>POOL SELECTION</h3>
+                <div class="pool-selector">
+                    <div class="pool-option selected" data-pool="cult-xrp" onclick="selectPool(this, 'CULT/XRP')">
+                        <div class="pool-name">CULT/XRP</div>
+                        <div class="pool-tvl">TVL: $363K</div>
+                    </div>
+                    <div class="pool-option" data-pool="obey-xrp" onclick="selectPool(this, 'OBEY/XRP')">
+                        <div class="pool-name">OBEY/XRP</div>
+                        <div class="pool-tvl">TVL: $125K</div>
+                    </div>
+                </div>
+
+                <form id="calculatorForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>LP Share (%)</label>
+                            <input type="number" id="sharePercent" step="0.01" placeholder="2.32" value="2.32">
+                        </div>
+                        <div class="form-group">
+                            <label>Total Rewards</label>
+                            <input type="number" id="totalRewards" step="0.01" placeholder="8443.5" value="8443.5">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Position Value ($)</label>
+                            <input type="number" id="positionValue" step="0.01" placeholder="10000" value="10000">
+                        </div>
+                        <div class="form-group">
+                            <label>Days Held</label>
+                            <input type="number" id="daysHeld" placeholder="30" value="30">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Entry Price Ratio</label>
+                            <input type="number" id="entryRatio" step="0.000001" placeholder="0.006154" value="0.006154">
+                        </div>
+                        <div class="form-group">
+                            <label>Current Price Ratio</label>
+                            <input type="number" id="currentRatio" step="0.000001" placeholder="0.006000" value="0.006000">
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <button type="button" class="btn btn-primary" onclick="performFullAnalysis()">INVOKE AI ORACLE</button>
+                        <button type="button" class="btn btn-danger" onclick="clearForm()">PURGE DATA</button>
+                    </div>
+                </form>
+
+                <div id="calculatorResults" class="results" style="display: none;">
+                    <h4>RITUAL CALCULATIONS</h4>
+                    <div class="result-row">
+                        <span>Your LP Share:</span>
+                        <strong id="resultShare">2.32%</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Period Reward:</span>
+                        <strong id="resultReward">195.89 CULT</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Annualized APR:</span>
+                        <strong id="resultAPR">156.7%</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Current IL:</span>
+                        <strong id="resultIL" class="blood-red">-2.34%</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Net Position:</span>
+                        <strong id="netPosition">+$180.22</strong>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3>LIVE POOL DATA</h3>
+                <div id="poolData">
+                    <div class="result-row">
+                        <span>Pool:</span>
+                        <strong>CULT/XRP</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Total Liquidity:</span>
+                        <strong>$363K</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>24h Volume:</span>
+                        <strong>$45.2K</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>LP Token Price:</span>
+                        <strong id="lpTokenPrice">$1.2347</strong>
+                    </div>
+                    <div class="result-row">
+                        <span>Trading Fee:</span>
+                        <strong>0.6%</strong>
+                    </div>
+                </div>
+                
+                <div class="chart-container">
+                    <canvas id="priceChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Oracle Tab -->
+        <div id="oracleTab" class="card" style="display: none;">
+            <h3>AI ORACLE PREDICTIONS</h3>
+            
+            <div class="prediction-panel">
+                <h4 style="color: var(--cult-green);">FUTURE SIGHT</h4>
+                <div class="prediction-timeline">
+                    <div class="prediction-card">
+                        <h5 style="color: var(--bone-white);">7 DAYS</h5>
+                        <div id="pred7dIL" style="color: var(--blood-red);">IL: -3.2%</div>
+                        <div id="pred7dNet" style="color: var(--cult-green);">Net: +$156</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: 85%;"></div>
+                        </div>
+                        <small>85% Confidence</small>
+                    </div>
+                    <div class="prediction-card">
+                        <h5 style="color: var(--bone-white);">30 DAYS</h5>
+                        <div id="pred30dIL" style="color: var(--blood-red);">IL: -5.8%</div>
+                        <div id="pred30dNet" style="color: var(--cult-green);">Net: +$423</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: 65%;"></div>
+                        </div>
+                        <small>65% Confidence</small>
+                    </div>
+                    <div class="prediction-card">
+                        <h5 style="color: var(--bone-white);">90 DAYS</h5>
+                        <div id="pred90dIL" style="color: var(--blood-red);">IL: -8.9%</div>
+                        <div id="pred90dNet" style="color: var(--cult-green);">Net: +$1,247</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: 40%;"></div>
+                        </div>
+                        <small>40% Confidence</small>
+                    </div>
+                </div>
+            </div>
+
+            <div id="aiRecommendationPanel" class="results">
+                <h4>ORACLE GUIDANCE</h4>
+                <div id="oracleRecommendation">
+                    <p>Analyzing market conditions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics Tab -->
+        <div id="analyticsTab" class="card" style="display: none;">
+            <h3>RITUAL ANALYTICS</h3>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">24.7%</div>
+                    <div class="stat-label">24H VOLUME CHANGE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">$45.2K</div>
+                    <div class="stat-label">24H VOLUME</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">0.6%</div>
+                    <div class="stat-label">TRADING FEE</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">TOTAL LPs</div>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <canvas id="analyticsChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced AI Risk Management System
+        class AdvancedLPOracle {
+            constructor(config = {}) {
+                this.config = {
+                    ilThreshold: config.ilThreshold || 0.03, // 3% IL threshold
+                    feeBuffer: config.feeBuffer || 1.8, // Fees should be 1.8x IL
+                    volatilityThreshold: config.volatilityThreshold || 0.25,
+                    volumeDropThreshold: config.volumeDropThreshold || 0.35,
+                    priceDeviationThreshold: config.priceDeviationThreshold || 0.15,
+                    minAnalysisPeriod: config.minAnalysisPeriod || 5,
+                    maxAnalysisPeriod: config.maxAnalysisPeriod || 100,
+                    ...config
+                };
+                
+                this.priceHistory = [];
+                this.volumeHistory = [];
+                this.ilHistory = [];
+                this.feeHistory = [];
+                this.volatilityHistory = [];
+                this.alerts = [];
+                this.lastUpdate = Date.now();
+            }
+
+            // Enhanced IL calculation with time decay factor
+            calculateAdvancedIL(entryRatio, currentRatio, timeHeld = 1) {
+                const priceRatio = currentRatio / entryRatio;
+                const baseIL = (2 * Math.sqrt(priceRatio) / (1 + priceRatio) - 1) * 100;
+                
+                // Time decay factor - IL impact increases non-linearly with time
+                const timeDecay = 1 + (Math.log(timeHeld / 30 + 1) * 0.1);
+                
+                return baseIL * timeDecay;
+            }
+
+            // Advanced volatility calculation using multiple methods
+            calculateMultiMethodVolatility(prices) {
+                if (prices.length < 3) return { value: 0, reliability: 0 };
+
+                // Method 1: Standard deviation of returns
+                const returns = prices.slice(1).map((price, i) => Math.log(price / prices[i]));
+                const meanReturn = returns.reduce((sum, ret) => sum + ret, 0) / returns.length;
+                const variance = returns.reduce((sum, ret) => sum + Math.pow(ret - meanReturn, 2), 0) / returns.length;
+                const standardVol = Math.sqrt(variance * 365);
+
+                // Method 2: GARCH-like weighted volatility
+                let garchVol = 0;
+                const alpha = 0.1; // Reaction coefficient
+                const beta = 0.85;  // Persistence coefficient
+                
+                for (let i = 1; i < returns.length; i++) {
+                    const prevVol = i === 1 ? standardVol : garchVol;
+                    garchVol = Math.sqrt(alpha * Math.pow(returns[i], 2) + beta * Math.pow(prevVol, 2));
+                }
+
+                // Method 3: Parkinson volatility (using high-low range)
+                let parkinsonVol = 0;
+                if (prices.length >= 5) {
+                    const rangeSums = prices.slice(0, -1).map((price, i) => {
+                        const high = Math.max(price, prices[i + 1]);
+                        const low = Math.min(price, prices[i + 1]);
+                        return Math.pow(Math.log(high / low), 2);
+                    });
+                    parkinsonVol = Math.sqrt(rangeSums.reduce((sum, val) => sum + val, 0) / rangeSums.length * 365 / (4 * Math.log(2)));
+                }
+
+                // Combine methods with weights
+                const weights = [0.4, 0.4, 0.2];
+                const combinedVol = (standardVol * weights[0] + garchVol * weights[1] + parkinsonVol * weights[2]);
+                
+                return {
+                    value: combinedVol,
+                    standard: standardVol,
+                    garch: garchVol,
+                    parkinson: parkinsonVol,
+                    reliability: Math.min(1, prices.length / 20) // Reliability based on data points
+                };
+            }
+
+            // Advanced trend analysis using multiple indicators
+            analyzeTrends(prices, volumes = []) {
+                if (prices.length < 5) return { strength: 0, direction: 'neutral', reliability: 0 };
+
+                // Moving averages
+                const shortMA = this.calculateMA(prices.slice(-5), 5);
+                const longMA = this.calculateMA(prices.slice(-10), 10);
+                
+                // RSI calculation
+                const rsi = this.calculateRSI(prices.slice(-14));
+                
+                // Volume-weighted trend
+                let volumeTrend = 0;
+                if (volumes.length >= prices.length) {
+                    const priceChanges = prices.slice(1).map((price, i) => (price - prices[i]) / prices[i]);
+                    const volumeWeights = volumes.slice(-priceChanges.length);
+                    volumeTrend = priceChanges.reduce((sum, change, i) => 
+                        sum + (change * volumeWeights[i]), 0) / volumeWeights.reduce((sum, vol) => sum + vol, 0);
+                }
+
+                // Momentum indicators
+                const momentum = (prices[prices.length - 1] - prices[Math.max(0, prices.length - 10)]) / prices[Math.max(0, prices.length - 10)];
+                
+                // Combine indicators
+                const trendStrength = Math.abs(momentum) * 0.4 + Math.abs(volumeTrend) * 0.3 + Math.abs(shortMA - longMA) / longMA * 0.3;
+                const direction = momentum > 0.02 ? 'bullish' : momentum < -0.02 ? 'bearish' : 'neutral';
+                
+                return {
+                    strength: Math.min(1, trendStrength * 10),
+                    direction: direction,
+                    momentum: momentum,
+                    rsi: rsi,
+                    volumeTrend: volumeTrend,
+                    reliability: Math.min(1, prices.length / 15)
+                };
+            }
+
+            calculateMA(prices, period) {
+                if (prices.length < period) return prices[prices.length - 1];
+                return prices.slice(-period).reduce((sum, price) => sum + price, 0) / period;
+            }
+
+            calculateRSI(prices, period = 14) {
+                if (prices.length < period + 1) return 50;
+                
+                const changes = prices.slice(1).map((price, i) => price - prices[i]);
+                const gains = changes.map(change => change > 0 ? change : 0);
+                const losses = changes.map(change => change < 0 ? -change : 0);
+                
+                const avgGain = gains.slice(-period).reduce((sum, gain) => sum + gain, 0) / period;
+                const avgLoss = losses.slice(-period).reduce((sum, loss) => sum + loss, 0) / period;
+                
+                if (avgLoss === 0) return 100;
+                const rs = avgGain / avgLoss;
+                return 100 - (100 / (1 + rs));
+            }
+
+            // Advanced risk assessment with machine learning concepts
+            assessAdvancedRisk(positionData) {
+                const {
+                    entryPriceRatio, currentPriceRatio, feesEarned, positionValue,
+                    currentVolume, historicalVolume, daysHeld, dailyVolumes = []
+                } = positionData;
+
+                // Update historical data
+                this.updateHistoricalData(currentPriceRatio, currentVolume, feesEarned);
+
+                // Calculate advanced metrics
+                const currentIL = this.calculateAdvancedIL(entryPriceRatio, currentPriceRatio, daysHeld);
+                const volatilityAnalysis = this.calculateMultiMethodVolatility(this.priceHistory);
+                const trendAnalysis = this.analyzeTrends(this.priceHistory, this.volumeHistory);
+                
+                // Risk factors with weights
+                const riskFactors = {
+                    ilSeverity: {
+                        value: Math.abs(currentIL),
+                        weight: 0.35,
+                        threshold: this.config.ilThreshold * 100
+                    },
+                    volatility: {
+                        value: volatilityAnalysis.value,
+                        weight: 0.25,
+                        threshold: this.config.volatilityThreshold
+                    },
+                    volumeDecline: {
+                        value: 1 - (currentVolume / historicalVolume),
+                        weight: 0.15,
+                        threshold: this.config.volumeDropThreshold
+                    },
+                    trendDivergence: {
+                        value: trendAnalysis.strength,
+                        weight: 0.15,
+                        threshold: 0.3
+                    },
+                    timeExposure: {
+                        value: Math.min(1, daysHeld / 180),
+                        weight: 0.1,
+                        threshold: 0.5
+                    }
+                };
+
+                // Calculate composite risk score
+                let riskScore = 0;
+                Object.values(riskFactors).forEach(factor => {
+                    const normalizedRisk = Math.min(1, factor.value / factor.threshold);
+                    riskScore += normalizedRisk * factor.weight;
+                });
+
+                // Fee compensation analysis
+                const ilValue = Math.abs(positionValue * (currentIL / 100));
+                const feeCompensation = ilValue > 0 ? feesEarned / ilValue : Infinity;
+                const netPosition = feesEarned - ilValue;
+
+                // Generate recommendation using decision tree
+                const recommendation = this.generateAdvancedRecommendation(
+                    riskScore, feeCompensation, netPosition, positionValue, 
+                    volatilityAnalysis, trendAnalysis
+                );
+
+                // Generate predictions
+                const predictions = this.generateAdvancedPredictions(positionData, volatilityAnalysis, trendAnalysis);
+
+                return {
+                    riskScore: Math.min(1, Math.max(0, riskScore)),
+                    currentIL: currentIL,
+                    netPosition: netPosition,
+                    feeCompensation: feeCompensation,
+                    volatilityAnalysis: volatilityAnalysis,
+                    trendAnalysis: trendAnalysis,
+                    recommendation: recommendation,
+                    predictions: predictions,
+                    riskFactors: riskFactors,
+                    alerts: this.generateAdvancedAlerts(riskScore, currentIL, feeCompensation, volatilityAnalysis)
+                };
+            }
+
+            generateAdvancedRecommendation(riskScore, feeCompensation, netPosition, positionValue, volAnalysis, trendAnalysis) {
+                // Decision matrix based on multiple factors
+                let action = 'HOLD';
+                let percentage = 0;
+                let confidence = 0.5;
+                let reason = 'Position within acceptable parameters';
+
+                // High risk scenarios
+                if (riskScore > 0.8 && feeCompensation < 1.0) {
+                    action = 'URGENT_EXIT';
+                    percentage = this.calculateOptimalExitPercentage(riskScore, 0.7, 1.0);
+                    confidence = 0.95;
+                    reason = 'Critical risk levels detected - immediate action required';
+                } else if (riskScore > 0.6 && feeCompensation < 1.5) {
+                    action = 'REDUCE_EXPOSURE';
+                    percentage = this.calculateOptimalExitPercentage(riskScore, 0.3, 0.7);
+                    confidence = 0.8;
+                    reason = 'High risk with insufficient fee compensation';
+                } else if (volAnalysis.value > 0.4 && trendAnalysis.strength > 0.6) {
+                    action = 'MONITOR_CLOSELY';
+                    confidence = 0.75;
+                    reason = 'High volatility with strong trend - increased risk';
+                } else if (riskScore < 0.3 && feeCompensation > 2.0 && netPosition > 0) {
+                    action = 'CONSIDER_INCREASE';
+                    percentage = Math.min(0.25, 0.1 + (feeCompensation - 2.0) * 0.05);
+                    confidence = 0.7;
+                    reason = 'Low risk with strong fee generation';
+                } else if (feeCompensation > 1.8 && netPosition > positionValue * 0.02) {
+                    action = 'TAKE_PARTIAL_PROFIT';
+                    percentage = Math.min(0.5, netPosition / positionValue);
+                    confidence = 0.65;
+                    reason = 'Strong performance - consider profit taking';
+                }
+
+                return {
+                    action: action,
+                    percentage: percentage,
+                    reason: reason,
+                    confidence: confidence,
+                    urgency: riskScore > 0.7 ? 'HIGH' : riskScore > 0.4 ? 'MEDIUM' : 'LOW'
+                };
+            }
+
+            calculateOptimalExitPercentage(riskScore, minPct, maxPct) {
+                // Non-linear scaling based on risk
+                const riskAdjustedPct = minPct + (maxPct - minPct) * Math.pow(riskScore, 1.5);
+                return Math.min(maxPct, Math.max(minPct, riskAdjustedPct));
+            }
+
+            generateAdvancedPredictions(positionData, volAnalysis, trendAnalysis) {
+                const predictions = [];
+                const timeframes = [7, 30, 90];
+                
+                timeframes.forEach(days => {
+                    const prediction = this.predictPositionOutcome(positionData, days, volAnalysis, trendAnalysis);
+                    predictions.push({
+                        timeframe: days,
+                        projectedIL: prediction.il,
+                        projectedFees: prediction.fees,
+                        projectedNet: prediction.net,
+                        confidence: prediction.confidence,
+                        scenario: prediction.scenario
+                    });
+                });
+
+                return predictions;
+            }
+
+            predictPositionOutcome(positionData, days, volAnalysis, trendAnalysis) {
+                const { currentIL, feesEarned, positionValue, daysHeld } = positionData;
+                
+                // Base daily rates
+                const baseDailyFeeRate = 0.006 / 365; // 0.6% annual
+                const volatilityAdjustment = volAnalysis.value * 0.5; // Higher vol = higher fees but higher IL risk
+                
+                // IL projection using Monte Carlo-like approach
+                const projectedVolatility = volAnalysis.value * (1 + trendAnalysis.strength * 0.3);
+                const expectedPriceChange = trendAnalysis.momentum * Math.sqrt(days / 30);
+                
+                // Multiple scenarios
+                const scenarios = [
+                    { prob: 0.5, priceChange: expectedPriceChange },
+                    { prob: 0.25, priceChange: expectedPriceChange + projectedVolatility * 0.5 },
+                    { prob: 0.25, priceChange: expectedPriceChange - projectedVolatility * 0.5 }
+                ];
+
+                let weightedIL = 0;
+                let weightedFees = 0;
+                let confidence = 0.8;
+
+                scenarios.forEach(scenario => {
+                    const newRatio = positionData.currentPriceRatio * (1 + scenario.priceChange);
+                    const projectedIL = this.calculateAdvancedIL(positionData.entryPriceRatio, newRatio, daysHeld + days);
+                    const projectedFees = feesEarned + (positionValue * baseDailyFeeRate * days * (1 + volatilityAdjustment));
+                    
+                    weightedIL += projectedIL * scenario.prob;
+                    weightedFees += projectedFees * scenario.prob;
+                });
+
+                // Adjust confidence based on time horizon and data quality
+                confidence *= Math.max(0.3, 1 - (days / 180)) * volAnalysis.reliability;
+                
+                const projectedNet = weightedFees + (positionValue * (weightedIL / 100));
+                
+                return {
+                    il: weightedIL,
+                    fees: weightedFees,
+                    net: projectedNet,
+                    confidence: confidence,
+                    scenario: projectedNet > 0 ? 'PROFITABLE' : 'LOSS'
+                };
+            }
+
+            generateAdvancedAlerts(riskScore, currentIL, feeCompensation, volAnalysis) {
+                const alerts = [];
+
+                if (riskScore > 0.8) {
+                    alerts.push({
+                        severity: 'CRITICAL',
+                        type: 'RISK_OVERLOAD',
+                        message: `CRITICAL: Risk score at ${(riskScore * 100).toFixed(1)}% - Immediate review required`,
+                        action: 'Consider emergency exit strategy',
+                        icon: '🚨'
+                    });
+                }
+
+                if (Math.abs(currentIL) > 10 && feeCompensation < 1.2) {
+                    alerts.push({
+                        severity: 'HIGH',
+                        type: 'IL_DOMINANCE',
+                        message: `IL at ${currentIL.toFixed(2)}% exceeding fee compensation`,
+                        action: 'Reduce exposure or exit position',
+                        icon: '⚠️'
+                    });
+                }
+
+                if (volAnalysis.value > 0.5) {
+                    alerts.push({
+                        severity: 'MEDIUM',
+                        type: 'VOLATILITY_SPIKE',
+                        message: `Extreme volatility detected: ${(volAnalysis.value * 100).toFixed(1)}%`,
+                        action: 'Monitor closely for rapid IL changes',
+                        icon: '📈'
+                    });
+                }
+
+                if (feeCompensation > 3.0 && currentIL > -2) {
+                    alerts.push({
+                        severity: 'INFO',
+                        type: 'PROFIT_OPPORTUNITY',
+                        message: `Strong fee performance - Consider profit taking`,
+                        action: 'Evaluate partial exit for gains',
+                        icon: '💰'
+                    });
+                }
+
+                return alerts;
+            }
+
+            updateHistoricalData(price, volume, fees) {
+                this.priceHistory.push(price);
+                this.volumeHistory.push(volume);
+                this.feeHistory.push(fees);
+                
+                // Maintain rolling window
+                const maxLength = this.config.maxAnalysisPeriod;
+                [this.priceHistory, this.volumeHistory, this.feeHistory].forEach(array => {
+                    if (array.length > maxLength) {
+                        array.shift();
+                    }
+                });
+            }
+        }
+
+        // Global variables
+        let currentPool = 'CULT/XRP';
+        let priceChart, analyticsChart;
+        let lpOracle = new AdvancedLPOracle();
+        let matrixCanvas, matrixCtx;
+
+        // Initialize matrix rain effect
+        function initMatrixRain() {
+            matrixCanvas = document.getElementById('matrixCanvas');
+            matrixCtx = matrixCanvas.getContext('2d');
+            
+            matrixCanvas.width = window.innerWidth;
+            matrixCanvas.height = window.innerHeight;
+            
+            const chars = '01CULTOBEYXRP.split('');
+            const drops = Array(Math.floor(matrixCanvas.width / 10)).fill(1);
+            
+            function drawMatrix() {
+                matrixCtx.fillStyle = 'rgba(0, 0, 0, 0.04)';
+                matrixCtx.fillRect(0, 0, matrixCanvas.width, matrixCanvas.height);
+                
+                matrixCtx.fillStyle = 'rgba(0, 255, 65, 0.8)';
+                matrixCtx.font = '10px Courier New';
+                
+                drops.forEach((y, i) => {
+                    const char = chars[Math.floor(Math.random() * chars.length)];
+                    matrixCtx.fillText(char, i * 10, y * 10);
+                    
+                    if (y * 10 > matrixCanvas.height && Math.random() > 0.975) {
+                        drops[i] = 0;
+                    }
+                    drops[i]++;
+                });
+            }
+            
+            setInterval(drawMatrix, 33);
+        }
+
+        // Initialize charts
+        function initCharts() {
+            const priceCtx = document.getElementById('priceChart');
+            if (priceCtx) {
+                priceChart = new Chart(priceCtx, {
+                    type: 'line',
+                    data: {
+                        labels: Array.from({length: 24}, (_, i) => `${i}:00`),
+                        datasets: [{
+                            label: 'CULT/XRP Ratio',
+                            data: generateMockPriceData(),
+                            borderColor: '#00ff41',
+                            backgroundColor: 'rgba(0, 255, 65, 0.1)',
+                            tension: 0.4,
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#00ff41' }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                ticks: { color: '#00ff41' },
+                                grid: { color: 'rgba(0, 255, 65, 0.2)' }
+                            },
+                            y: {
+                                ticks: { color: '#00ff41' },
+                                grid: { color: 'rgba(0, 255, 65, 0.2)' }
+                            }
+                        }
+                    }
+                });
+            }
+
+            const analyticsCtx = document.getElementById('analyticsChart');
+            if (analyticsCtx) {
+                analyticsChart = new Chart(analyticsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['CULT Holdings', 'XRP Holdings', 'LP Tokens'],
+                        datasets: [{
+                            data: [45, 35, 20],
+                            backgroundColor: ['#00ff41', '#ffffff', '#ff0033'],
+                            borderColor: '#000000',
+                            borderWidth: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: { color: '#00ff41' }
+                            }
+                        }
+                    }
+                });
+            }
+        }
+
+        function generateMockPriceData() {
+            let price = 0.006154;
+            return Array.from({length: 24}, () => {
+                price += (Math.random() - 0.5) * 0.0001;
+                return parseFloat(price.toFixed(6));
+            });
+        }
+
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.grid, #oracleTab, #analyticsTab').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Remove active class
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            if (tabName === 'calculator') {
+                document.getElementById('calculatorTab').style.display = 'grid';
+            } else if (tabName === 'oracle') {
+                document.getElementById('oracleTab').style.display = 'block';
+            } else if (tabName === 'analytics') {
+                document.getElementById('analyticsTab').style.display = 'block';
+            }
+            
+            // Add active class
+            event.target.classList.add('active');
+            
+            // Initialize charts
+            setTimeout(initCharts, 100);
+        }
+
+        function selectPool(element, poolName) {
+            document.querySelectorAll('.pool-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            currentPool = poolName;
+            updatePoolData();
+        }
+
+        function updatePoolData() {
+            const lpPrice = (Math.random() * 2 + 1).toFixed(4);
+            document.getElementById('lpTokenPrice').textContent = `${lpPrice}`;
+        }
+
+        function performFullAnalysis() {
+            const sharePercent = parseFloat(document.getElementById('sharePercent').value) || 0;
+            const totalRewards = parseFloat(document.getElementById('totalRewards').value) || 0;
+            const positionValue = parseFloat(document.getElementById('positionValue').value) || 0;
+            const daysHeld = parseFloat(document.getElementById('daysHeld').value) || 30;
+            const entryRatio = parseFloat(document.getElementById('entryRatio').value) || 0.006154;
+            const currentRatio = parseFloat(document.getElementById('currentRatio').value) || 0.006000;
+
+            if (sharePercent > 0 && totalRewards > 0 && positionValue > 0) {
+                // Prepare position data
+                const positionData = {
+                    entryPriceRatio: entryRatio,
+                    currentPriceRatio: currentRatio,
+                    feesEarned: positionValue * 0.006 * (daysHeld / 365),
+                    positionValue: positionValue,
+                    currentVolume: 45200,
+                    historicalVolume: 52000,
+                    daysHeld: daysHeld
+                };
+
+                // Perform AI analysis
+                const analysis = lpOracle.assessAdvancedRisk(positionData);
+                
+                // Update UI with results
+                updateCalculatorResults(sharePercent, totalRewards, analysis);
+                updateAIPanel(analysis);
+                updateOracleTab(analysis);
+                
+                // Show results
+                document.getElementById('calculatorResults').style.display = 'block';
+                document.getElementById('aiRiskPanel').style.display = 'block';
+            } else {
+                alert('Please fill in all required fields');
+            }
+        }
+
+        function updateCalculatorResults(sharePercent, totalRewards, analysis) {
+            const reward = (sharePercent / 100) * totalRewards;
+            const apr = ((reward * 12) / analysis.netPosition) * 100;
+            
+            document.getElementById('resultShare').textContent = `${sharePercent}%`;
+            document.getElementById('resultReward').textContent = `${reward.toFixed(2)} ${currentPool.split('/')[0]}`;
+            document.getElementById('resultAPR').textContent = `${apr.toFixed(1)}%`;
+            document.getElementById('resultIL').textContent = `${analysis.currentIL.toFixed(2)}%`;
+            
+            const netElement = document.getElementById('netPosition');
+            netElement.textContent = analysis.netPosition >= 0 
+                ? `+${analysis.netPosition.toFixed(2)}` 
+                : `-${Math.abs(analysis.netPosition).toFixed(2)}`;
+            netElement.style.color = analysis.netPosition >= 0 ? '#00ff41' : '#ff0033';
+        }
+
+        function updateAIPanel(analysis) {
+            const panel = document.getElementById('aiRiskPanel');
+            const title = document.getElementById('aiAlertTitle');
+            const message = document.getElementById('aiAlertMessage');
+            const recommendation = document.getElementById('aiRecommendation');
+            const riskMeter = document.getElementById('riskMeterFill');
+            const aiStatus = document.getElementById('aiRiskLevel');
+            
+            // Update risk level display
+            const riskLevel = analysis.riskScore < 0.3 ? 'LOW' : analysis.riskScore < 0.6 ? 'MEDIUM' : 'HIGH';
+            aiStatus.textContent = `RISK: ${riskLevel} (${(analysis.riskScore * 100).toFixed(1)}%)`;
+            
+            // Update alert panel
+            title.textContent = `AI ORACLE - ${analysis.recommendation.urgency} PRIORITY`;
+            message.innerHTML = `
+                <strong>Risk Analysis:</strong> ${analysis.recommendation.reason}<br>
+                <strong>Confidence:</strong> ${(analysis.recommendation.confidence * 100).toFixed(1)}%<br>
+                <strong>IL Status:</strong> ${analysis.currentIL.toFixed(2)}%<br>
+                <strong>Fee Compensation:</strong> ${analysis.feeCompensation.toFixed(2)}x
+            `;
+            
+            recommendation.innerHTML = `
+                <strong>RECOMMENDATION:</strong> ${analysis.recommendation.action}<br>
+                ${analysis.recommendation.percentage > 0 ? 
+                    `<strong>SUGGESTED AMOUNT:</strong> ${(analysis.recommendation.percentage * 100).toFixed(1)}%` : 
+                    ''
+                }
+            `;
+            
+            // Update risk meter
+            const riskPct = Math.min(100, analysis.riskScore * 100);
+            riskMeter.style.width = `${riskPct}%`;
+            riskMeter.className = `risk-level ${riskLevel === 'LOW' ? 'risk-low' : riskLevel === 'MEDIUM' ? 'risk-medium' : 'risk-high'}`;
+            
+            // Update panel styling based on urgency
+            panel.className = `ai-alert ${analysis.recommendation.urgency === 'HIGH' ? '' : 
+                analysis.recommendation.urgency === 'MEDIUM' ? 'warning' : 'info'}`;
+        }
+
+        function updateOracleTab(analysis) {
+            const recommendations = document.getElementById('oracleRecommendation');
+            
+            let recommendationHtml = `
+                <div style="margin-bottom: 20px;">
+                    <h5 style="color: #00ff41;">ORACLE SPEAKS:</h5>
+                    <p>${analysis.recommendation.reason}</p>
+                    <p><strong>Action:</strong> ${analysis.recommendation.action}</p>
+                    <p><strong>Confidence:</strong> ${(analysis.recommendation.confidence * 100).toFixed(1)}%</p>
+                </div>
+            `;
+            
+            if (analysis.alerts && analysis.alerts.length > 0) {
+                recommendationHtml += '<h5 style="color: #ff0033;">ACTIVE ALERTS:</h5>';
+                analysis.alerts.forEach(alert => {
+                    recommendationHtml += `
+                        <div style="margin: 10px 0; padding: 10px; border: 1px solid ${
+                            alert.severity === 'CRITICAL' ? '#ff0033' : 
+                            alert.severity === 'HIGH' ? '#ff9900' : '#00ff41'
+                        }; border-radius: 5px;">
+                            <strong>${alert.type}:</strong> ${alert.message}<br>
+                            <small>${alert.action}</small>
+                        </div>
+                    `;
+                });
+            }
+            
+            recommendations.innerHTML = recommendationHtml;
+            
+            if (analysis.predictions && analysis.predictions.length > 0) {
+                analysis.predictions.forEach((pred, i) => {
+                    const timeframes = ['pred7dIL', 'pred30dIL', 'pred90dIL'];
+                    const netframes = ['pred7dNet', 'pred30dNet', 'pred90dNet'];
+                    
+                    if (i < timeframes.length) {
+                        document.getElementById(timeframes[i]).textContent = `IL: ${pred.projectedIL.toFixed(2)}%`;
+                        document.getElementById(netframes[i]).textContent = `Net: ${pred.projectedNet >= 0 ? '+' : ''}${pred.projectedNet.toFixed(0)}`;
+                    }
+                });
+            }
+        }
+
+        function clearForm() {
+            document.getElementById('calculatorForm').reset();
+            document.getElementById('calculatorResults').style.display = 'none';
+            document.getElementById('aiRiskPanel').style.display = 'none';
+        }
+
+        // Simulate live price updates
+        function updateLivePrices() {
+            const cultPrice = (0.0032 + (Math.random() - 0.5) * 0.0002).toFixed(6);
+            const obeyPrice = (0.0018 + (Math.random() - 0.5) * 0.0001).toFixed(6);
+            const xrpPrice = (0.52 + (Math.random() - 0.5) * 0.02).toFixed(3);
+            
+            document.getElementById('cultPrice').textContent = `${cultPrice}`;
+            document.getElementById('obeyPrice').textContent = `${obeyPrice}`;
+            document.getElementById('xrpPrice').textContent = `${xrpPrice}`;
+            
+            // Update AI status
+            const riskLevels = ['SCANNING...', 'ANALYZING...', 'CALCULATING...', 'MONITORING...'];
+            const randomStatus = riskLevels[Math.floor(Math.random() * riskLevels.length)];
+            document.getElementById('aiRiskLevel').textContent = randomStatus;
+        }
+
+        // Auto-analysis for continuous monitoring
+        function performContinuousAnalysis() {
+            const sharePercent = parseFloat(document.getElementById('sharePercent').value) || 2.32;
+            const positionValue = parseFloat(document.getElementById('positionValue').value) || 10000;
+            const daysHeld = parseFloat(document.getElementById('daysHeld').value) || 30;
+            
+            if (positionValue > 0) {
+                // Simulate changing market conditions
+                const entryRatio = 0.006154;
+                const currentRatio = entryRatio * (1 + (Math.random() - 0.5) * 0.1);
+                
+                const positionData = {
+                    entryPriceRatio: entryRatio,
+                    currentPriceRatio: currentRatio,
+                    feesEarned: positionValue * 0.006 * (daysHeld / 365),
+                    positionValue: positionValue,
+                    currentVolume: 45200 + (Math.random() - 0.5) * 10000,
+                    historicalVolume: 52000,
+                    daysHeld: daysHeld
+                };
+
+                const analysis = lpOracle.assessAdvancedRisk(positionData);
+                
+                // Update AI status with current risk level
+                const riskLevel = analysis.riskScore < 0.3 ? 'LOW' : analysis.riskScore < 0.6 ? 'MEDIUM' : 'HIGH';
+                document.getElementById('aiRiskLevel').textContent = `RISK: ${riskLevel}`;
+                
+                // Show critical alerts
+                if (analysis.recommendation.urgency === 'HIGH') {
+                    updateAIPanel(analysis);
+                    document.getElementById('aiRiskPanel').style.display = 'block';
+                }
+            }
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            initMatrixRain();
+            initCharts();
+            updatePoolData();
+            
+            // Update prices every 15 seconds
+            setInterval(updateLivePrices, 15000);
+            
+            // Continuous AI monitoring every 30 seconds
+            setInterval(performContinuousAnalysis, 30000);
+            
+            // Simulate some initial data for the oracle
+            const mockData = Array.from({length: 20}, (_, i) => ({
+                price: 0.006154 * (1 + (Math.random() - 0.5) * 0.1),
+                volume: 50000 + Math.random() * 20000,
+                fees: 100 + i * 5
+            }));
+            
+            mockData.forEach(data => {
+                lpOracle.updateHistoricalData(data.price, data.volume, data.fees);
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 'Enter') {
+                performFullAnalysis();
+            }
+            if (e.key === 'Escape') {
+                clearForm();
+            }
+        });
+
+        // Add window resize handler for matrix rain
+        window.addEventListener('resize', function() {
+            if (matrixCanvas) {
+                matrixCanvas.width = window.innerWidth;
+                matrixCanvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>
